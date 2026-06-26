@@ -3,6 +3,7 @@
 #include "src/incflo.H"
 #include "src/core/MLMGOptions.H"
 #include "src/utilities/console_io.H"
+#include "src/utilities/diagnostics.H"
 #include "src/core/field_ops.H"
 #include "src/projection/nodal_projection_ops.H"
 #include "hydro_utils.H"
@@ -372,6 +373,9 @@ void incflo::ApplyProjection(
                 amrex::ToMultiFab(imask_node(lev)), 0, 0, 1, 0);
         }
         nodal_projector->setCustomRHS(div_vel_rhs->vec_const_ptrs());
+        kynema_sgf::diagnostics::check_rhs_sum(
+            div_vel_rhs->vec_const_ptrs(), "NodeProj_RHS_IB",
+            "nodal_proj");
     }
 
     if (m_sim.has_overset()) {
@@ -394,8 +398,18 @@ void incflo::ApplyProjection(
 
         nodal_projector->project(
             phif->vec_ptrs(), options.rel_tol, options.abs_tol);
+        
+        // Check RHS for overset case after solve
+        kynema_sgf::diagnostics::check_rhs_sum(
+            nodal_projector->getRHSConst(), "NodeProj_RHS_overset",
+            "nodal_proj");
     } else {
         nodal_projector->project(options.rel_tol, options.abs_tol);
+        
+        // Check RHS for general case after solve
+        kynema_sgf::diagnostics::check_rhs_sum(
+            nodal_projector->getRHSConst(), "NodeProj_RHS_general",
+            "nodal_proj");
     }
 
     kynema_sgf::io::print_mlmg_info(

@@ -77,6 +77,11 @@ amrex::Array<amrex::Real, 24> PrintMaxVelLocations(
 amrex::Array<amrex::Real, 24> PrintMaxMACVelLocations(
     const kynema_sgf::FieldRepo& repo, const std::string& header);
 
+void check_rhs_sum(
+    const amrex::Vector<const amrex::MultiFab*>& rhs_ptrs,
+    const std::string& name,
+    const std::string& prefix = "diagnostics");
+
 } // namespace kynema_sgf::diagnostics
 
 #endif

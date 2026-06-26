@@ -760,3 +760,41 @@ void incflo::CheckForNans(int lev) const
         amrex::Print() << "WARNING: p contains NaNs!!!";
     }
 }
+
+void kynema_sgf::diagnostics::check_rhs_sum(
+    const amrex::Vector<const amrex::MultiFab*>& rhs_ptrs,
+    const std::string& name,
+    const std::string& prefix)
+{
+    bool check_rhs = false;
+    amrex::ParmParse pp(prefix);
+    pp.query("check_rhs_sum", check_rhs);
+
+    if (!check_rhs || rhs_ptrs.empty()) {
+        return;
+    }
+
+    amrex::Print() << "\n=== RHS Sum Check: " << name << " ===\n";
+
+    const int nlevels = static_cast<int>(rhs_ptrs.size());
+    const int ncomps = rhs_ptrs[0]->nComp();
+
+    // Compute sum for each component across all levels
+    for (int comp = 0; comp < ncomps; ++comp) {
+        amrex::Real total_sum = 0.0_rt;
+
+        for (int lev = 0; lev < nlevels; ++lev) {
+            if (rhs_ptrs[lev] != nullptr) {
+                amrex::Real lev_sum = rhs_ptrs[lev]->sum(comp, false);
+                total_sum += lev_sum;
+                amrex::Print() << "  Level " << lev << ", Component " << comp
+                               << ": sum = " << lev_sum << "\n";
+            }
+        }
+
+        amrex::Print() << "  Total sum for component " << comp << ": "
+                       << total_sum << "\n";
+    }
+
+    amrex::Print() << "=== End RHS Sum Check ===\n" << std::endl;
+}
