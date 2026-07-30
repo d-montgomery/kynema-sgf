@@ -47,8 +47,7 @@ WallFunction::WallFunction(CFDSim& sim)
         }
         const auto& geom = m_mesh.Geom(0);
         m_log_law.zref =
-            (geom.ProbLo(m_direction) +
-             ((m_log_law.ref_index + 0.5_rt) * geom.CellSize(m_direction)));
+            (m_log_law.ref_index + 0.5_rt) * geom.CellSize(m_direction);
     }
     {
         amrex::ParmParse pp(
