@@ -83,10 +83,20 @@ ChannelFlow::ChannelFlow(CFDSim& sim)
         }
     }
     {
+        amrex::ParmParse pp("ChannelFlow");
+        if (pp.contains("channel_half_height")) {
+            pp.get("channel_half_height", m_delta);
+        } else {
+            const auto& geom0 = m_mesh.Geom(0);
+            m_delta = 0.5_rt * (geom0.ProbHiArray()[m_norm_dir] -
+                                geom0.ProbLoArray()[m_norm_dir]);
+        }
+    }
+    {
         amrex::ParmParse pp("transport");
         pp.query("viscosity", m_mu);
-        // Assumes a boundary layer height of 1.0_rt
-        m_utau = m_mu * m_re_tau / (m_rho * 1.0_rt);
+        // Re_tau is based on the half channel height (m_delta)
+        m_utau = m_mu * m_re_tau / (m_rho * m_delta);
         m_ytau = m_mu / (m_utau * m_rho);
     }
     if ((amrex::ParallelDescriptor::IOProcessor()) &&
@@ -133,6 +143,7 @@ void ChannelFlow::initialize_fields(
     const amrex::Real kappa = m_kappa;
     const amrex::Real y_tau = m_ytau;
     const amrex::Real utau = m_utau;
+    const amrex::Real delta = m_delta;
     auto& velocity_field = m_repo.get_field("velocity");
     auto& velocity = velocity_field(level);
     auto& density = m_repo.get_field("density")(level);
@@ -164,10 +175,9 @@ void ChannelFlow::initialize_fields(
             amrex::ParallelFor(
                 velocity, [=] AMREX_GPU_DEVICE(int nbx, int i, int j, int k) {
                     const int n_ind = idxOp(i, j, k);
-                    amrex::Real h =
-                        problo[n_idx] + ((n_ind + 0.5_rt) * dx[n_idx]);
-                    if (h > 1.0_rt) {
-                        h = 2.0_rt - h;
+                    amrex::Real h = (n_ind + 0.5_rt) * dx[n_idx];
+                    if (h > delta) {
+                        h = 2.0_rt * delta - h;
                     }
                     const amrex::Real ux = analytical_smagorinsky_profile(
                         h, Cs, dx[n_idx], rho, mu, dpdx, C0, C1);
@@ -196,10 +206,9 @@ void ChannelFlow::initialize_fields(
             amrex::ParallelFor(
                 velocity, [=] AMREX_GPU_DEVICE(int nbx, int i, int j, int k) {
                     const int n_ind = idxOp(i, j, k);
-                    amrex::Real h =
-                        problo[n_idx] + ((n_ind + 0.5_rt) * dx[n_idx]);
-                    if (h > 1.0_rt) {
-                        h = 2.0_rt - h;
+                    amrex::Real h = (n_ind + 0.5_rt) * dx[n_idx];
+                    if (h > delta) {
+                        h = 2.0_rt * delta - h;
                     }
                     wd_arrs[nbx](i, j, k) = h;
                     const amrex::Real hp = h / y_tau;

@@ -102,6 +102,12 @@ private:
     //! y_tau
     amrex::Real m_ytau{0.001_rt};
 
+    //! Half channel height (wall-normal). Defaults to half the domain
+    //! extent in the wall-normal direction, unless overridden via
+    //! ChannelFlow.channel_half_height (e.g. for immersed-boundary channels
+    //! where the domain extends beyond the flow channel walls).
+    amrex::Real m_delta{1.0_rt};
+
     //! initial tke value
     amrex::Real m_tke0{0.0_rt};
 
